@@ -10,9 +10,9 @@ import java.net.URLEncoder;
  */
 public class Test {
 
-    public static  String str = "goagent 下载";
+    public static  String str = "background:url(//ssl.gstatic.com/gb/images/b_8d5afc09.png);goagent 下载";
    public static void main(String[] args) throws UnsupportedEncodingException {
-       String s1 = str.replaceAll("\\+","%2B").replaceAll(" ","%20");
+       String s1 = str.replaceAll("background:url\\(//ssl.gstatic.com/gb/images/b_8d5afc09.png\\);","");
        System.out.println(s1);
    }
 }
