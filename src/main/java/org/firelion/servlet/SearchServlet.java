@@ -45,7 +45,8 @@ public class SearchServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         //URLencode不能处理 ‘+’和‘空格’
-        String q = URLEncoder.encode(req.getParameter("q"),"UTF-8").replaceAll("\\+","%2B").replaceAll(" ", "%20");
+        String parameter = req.getParameter("q");
+        String q = URLEncoder.encode(parameter,"UTF-8").replaceAll("\\+","%2B").replaceAll(" ", "%20");
         //google搜索的起始页参数
         String start = req.getParameter("start");
         String ei = req.getParameter("ei");
@@ -71,15 +72,50 @@ public class SearchServlet extends HttpServlet {
         System.out.println("==============================");
 
         String respData = execute(agent, acceptLanguage, url);
-
+        respData = handleData(respData , mobile);
 
         if(mobile){//手机端默认的字符集是GBK
-            resp.setCharacterEncoding("GBK");
+            resp.setCharacterEncoding("UTF-8");
         }else{
             resp.setCharacterEncoding("UTF-8");
         }
 
         resp.getWriter().print(respData);
+    }
+
+    /**
+     * 处理返回的数据,手机端和PC端
+     * @param respData
+     * @param mobile
+     * @return
+     */
+    private String handleData(String respData, boolean mobile) {
+        Document doc = Jsoup.parse(respData);
+        String meta = "<meta charset=\"utf-8\" />";
+        doc.getElementsByTag("head").append(meta);
+        doc.getElementById("taw").html("");
+        Element content = doc.getElementById("gsr");
+        if(mobile){//如果是手机端
+            respData = new StringBuffer().append(doc.html()).toString();
+        }else{
+            doc.getElementById("doc-info").html("");
+            doc.getElementById("cst").html("");
+            doc.getElementById("hdtb").html("");
+
+            doc.getElementById("xfoot").html("");
+
+            doc.getElementById("rhscol").html("");
+            //doc.getElementById("mngb").html("");
+            //doc.getElementById("logo").html("");
+            doc.getElementById("sbds").html("");
+
+            doc.getElementById("logocont").html("");
+            respData = new StringBuffer(STYLE).append(content.html()).toString();
+        }
+        System.out.println("================");
+        System.out.println(respData);
+        System.out.println("================");
+        return respData;
     }
 
     /**
@@ -130,10 +166,10 @@ public class SearchServlet extends HttpServlet {
         // Request configuration can be overridden at the request level.
         // They will take precedence over the one set at the client level.
         RequestConfig requestConfig = RequestConfig.copy(defaultRequestConfig)
-                .setSocketTimeout(5000)
-                .setConnectTimeout(5000)
+                .setSocketTimeout(3000)
+                .setConnectTimeout(3000)
 //                .setProxy(new HttpHost(PropertiesUtil.getProp("proxyHost"), Integer.valueOf(PropertiesUtil.getProp("proxyPort"))))
-                .setConnectionRequestTimeout(5000)
+                .setConnectionRequestTimeout(3000)
                 .build();
         httpget.setConfig(requestConfig);
 
@@ -142,32 +178,11 @@ public class SearchServlet extends HttpServlet {
         CloseableHttpResponse response = null;
         String respData = "";
         try {
-
             response = httpclient.execute(httpget);
             HttpEntity entity = response.getEntity();
-
             if (entity != null) {
                 HttpEntity ety=response.getEntity();
                 respData = EntityUtils.toString(ety, "utf-8");
-                //去掉加载慢的背景图片
-
-                Document doc = Jsoup.parse(respData);
-//              Element gstyle = doc.getElementById("gstyle");
-                doc.getElementById("doc-info").html("");
-                doc.getElementById("cst").html("");
-                doc.getElementById("hdtb").html("");
-
-                doc.getElementById("xfoot").html("");
-
-                doc.getElementById("taw").html("");
-                doc.getElementById("rhscol").html("");
-                doc.getElementById("mngb").html("");
-                doc.getElementById("logo").html("");
-                doc.getElementById("sbds").html("");
-                Element content = doc.getElementById("gsr");
-
-                respData = new StringBuffer(STYLE).append(content.html()).toString();
-//                respData = respData.replaceAll("background:url\\(//ssl.gstatic.com/gb/images/b_8d5afc09.png\\);","");
             }
         }catch(Exception e){
             e.printStackTrace();
